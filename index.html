@@ -217,91 +217,6 @@
     user-select:none;
   }
 
-  /* admin overlay */
-  #admin-overlay{
-    display:none;
-    position:fixed; inset:0;
-    background:rgba(2,6,3,0.92);
-    z-index:20;
-    align-items:center;
-    justify-content:center;
-    padding:20px;
-  }
-  .admin-panel{
-    background:var(--bg-panel);
-    border:1px solid var(--green-dim);
-    border-radius:8px;
-    padding:22px;
-    width:100%;
-    max-width:440px;
-    max-height:86vh;
-    overflow-y:auto;
-  }
-  .admin-panel h3{
-    font-size:13px;
-    letter-spacing:.1em;
-    color:var(--green);
-    margin-bottom:14px;
-    text-transform:uppercase;
-  }
-  .admin-panel label{
-    display:block;
-    font-size:10px;
-    color:var(--text-dim);
-    letter-spacing:.08em;
-    text-transform:uppercase;
-    margin:14px 0 6px;
-  }
-  .admin-panel input, .admin-panel select{
-    width:100%;
-    background:#04100a;
-    border:1px solid var(--border);
-    color:var(--text);
-    font-family:'JetBrains Mono', monospace;
-    padding:9px 10px;
-    border-radius:4px;
-    font-size:13px;
-  }
-  .admin-panel input:focus, .admin-panel select:focus{ outline:1px solid var(--green); }
-  .admin-row{ display:flex; gap:8px; }
-  .admin-row input{ flex:1; }
-  .admin-btn{
-    font-family:'JetBrains Mono', monospace;
-    background:var(--green);
-    color:#04150a;
-    border:none;
-    padding:9px 14px;
-    border-radius:4px;
-    font-size:11px;
-    font-weight:700;
-    letter-spacing:.06em;
-    cursor:pointer;
-  }
-  .admin-btn.secondary{
-    background:transparent;
-    color:var(--text-dim);
-    border:1px solid var(--border);
-    font-weight:500;
-  }
-  .pool-list{ margin-top:8px; }
-  .pool-item{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:8px 10px;
-    background:#04100a;
-    border:1px solid var(--border);
-    border-radius:4px;
-    margin-bottom:6px;
-    font-size:12px;
-  }
-  .pool-item .del{
-    color:var(--red); cursor:pointer; font-size:11px; letter-spacing:.05em;
-  }
-  .admin-msg{
-    font-size:11px; color:var(--amber); margin-top:10px; min-height:14px;
-  }
-  .admin-close{
-    display:flex; justify-content:flex-end; margin-top:18px; gap:8px;
-  }
   .stat-line{ font-size:12px; color:var(--text-dim); margin-bottom:4px; }
   .stat-line b{ color:var(--text); }
 </style>
@@ -358,58 +273,6 @@
   </div>
 </div>
 
-<!-- admin overlay -->
-<div id="admin-overlay">
-  <div class="admin-panel">
-    <div id="admin-login">
-      <h3>root access</h3>
-      <label>passphrase</label>
-      <input type="password" id="admin-pass-input" autocomplete="off" spellcheck="false">
-      <div class="admin-msg" id="login-msg"></div>
-      <div class="admin-close">
-        <button class="admin-btn secondary" id="admin-cancel-1">cancel</button>
-        <button class="admin-btn" id="admin-login-btn">unlock</button>
-      </div>
-    </div>
-
-    <div id="admin-dashboard" style="display:none;">
-      <h3>console</h3>
-      <div class="stat-line">total operatives cleared: <b id="admin-stat-scans">0</b></div>
-      <div class="stat-line">active code: <b id="admin-stat-active">—</b></div>
-      <div class="stat-line">rotates: <b id="admin-stat-next">—</b></div>
-
-      <label>rotation length (days)</label>
-      <select id="rotation-select">
-        <option value="1">1 day</option>
-        <option value="3">3 days</option>
-        <option value="7">7 days</option>
-        <option value="14">14 days</option>
-        <option value="30">30 days</option>
-      </select>
-
-      <label>code pool (rotates in order added)</label>
-      <div class="pool-list" id="pool-list"></div>
-      <div class="admin-row" style="margin-top:8px;">
-        <input type="text" id="new-code-input" placeholder="e.g. ROOTACCESS15" style="text-transform:uppercase;">
-        <button class="admin-btn" id="add-code-btn">add</button>
-      </div>
-
-      <label>discount description (shown to customer)</label>
-      <input type="text" id="desc-input" placeholder="e.g. 15% off — Trust No Input drop">
-
-      <label>change passphrase</label>
-      <input type="text" id="new-pass-input" placeholder="leave blank to keep current">
-
-      <div class="admin-msg" id="admin-msg"></div>
-      <textarea id="export-box" readonly style="display:none; width:100%; height:120px; margin-top:8px; background:#04100a; border:1px solid var(--border); color:var(--green); font-family:'JetBrains Mono',monospace; font-size:11px; padding:8px; border-radius:4px;"></textarea>
-      <div class="admin-close">
-        <button class="admin-btn secondary" id="copy-export-btn" style="display:none;">copy snippet</button>
-        <button class="admin-btn secondary" id="admin-close-btn">close</button>
-        <button class="admin-btn" id="admin-save-btn">generate snippet</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <script>
 (function(){
@@ -423,12 +286,11 @@
     rotationDays: 7,
     startDate: "2026-07-13", // anchor date the rotation counts from
     description: "10% off your next Trust No Input order",
-    adminPass: "trustnoinput",
-    // Secret URL key — change this to your own value.
-    // Admin access only opens if the page URL includes ?ops=<this value>
-    // e.g. https://yoursite/?ops=gh-ops-7734
-    // Nothing on the page hints this exists; no visible tap/click trigger.
-    consoleToken: "gh-ops-7734"
+    adminPass: "trustnoinput"
+    // adminPass is read by the separate console page to gate edits.
+    // It's visible in this file's source either way (it's client-side JS),
+    // so the console page's obscure, unlinked URL is the real barrier —
+    // not this passphrase alone.
   };
   // ============================================================
 
@@ -545,121 +407,10 @@
     setTimeout(()=>{ this.textContent = 'COPY CODE'; }, 1400);
   });
 
-  // ---- admin access: silent URL-param gate, no visible trigger on the page ----
-  function checkAdminAccess(){
-    const params = new URLSearchParams(window.location.search);
-    const ops = params.get('ops');
-    if(ops && ops === (config.consoleToken || DEFAULTS.consoleToken)){
-      openAdminLogin();
-    }
-  }
-
-  function openAdminLogin(){
-    document.getElementById('admin-overlay').style.display = 'flex';
-    document.getElementById('admin-login').style.display = 'block';
-    document.getElementById('admin-dashboard').style.display = 'none';
-    document.getElementById('login-msg').textContent = '';
-    document.getElementById('admin-pass-input').value = '';
-    document.getElementById('admin-pass-input').focus();
-  }
-  function closeAdmin(){
-    document.getElementById('admin-overlay').style.display = 'none';
-  }
-  document.getElementById('admin-cancel-1').addEventListener('click', closeAdmin);
-  document.getElementById('admin-close-btn').addEventListener('click', closeAdmin);
-
-  document.getElementById('admin-login-btn').addEventListener('click', async ()=>{
-    const val = document.getElementById('admin-pass-input').value;
-    if(val === (config.adminPass || DEFAULTS.adminPass)){
-      await openDashboard();
-    }else{
-      document.getElementById('login-msg').textContent = 'incorrect passphrase';
-    }
-  });
-  document.getElementById('admin-pass-input').addEventListener('keydown', (e)=>{
-    if(e.key === 'Enter') document.getElementById('admin-login-btn').click();
-  });
-
-  function renderPool(){
-    const list = document.getElementById('pool-list');
-    list.innerHTML = '';
-    config.pool.forEach((code, idx)=>{
-      const row = document.createElement('div');
-      row.className = 'pool-item';
-      row.innerHTML = '<span>' + (idx+1) + '. ' + code + '</span><span class="del" data-idx="'+idx+'">remove</span>';
-      list.appendChild(row);
-    });
-    list.querySelectorAll('.del').forEach(el=>{
-      el.addEventListener('click', ()=>{
-        const idx = parseInt(el.getAttribute('data-idx'),10);
-        if(config.pool.length > 1){
-          config.pool.splice(idx,1);
-          renderPool();
-        }else{
-          document.getElementById('admin-msg').textContent = 'pool needs at least one code';
-        }
-      });
-    });
-  }
-
-  async function openDashboard(){
-    document.getElementById('admin-login').style.display = 'none';
-    document.getElementById('admin-dashboard').style.display = 'block';
-    const scans = await getScanCount();
-    document.getElementById('admin-stat-scans').textContent = scans.toLocaleString();
-    const { code, nextRotation } = currentWindow();
-    document.getElementById('admin-stat-active').textContent = code;
-    document.getElementById('admin-stat-next').textContent = nextRotation.toDateString();
-    document.getElementById('rotation-select').value = String(config.rotationDays);
-    document.getElementById('desc-input').value = config.description || '';
-    renderPool();
-  }
-
-  document.getElementById('add-code-btn').addEventListener('click', ()=>{
-    const input = document.getElementById('new-code-input');
-    const val = input.value.trim().toUpperCase();
-    if(val){
-      config.pool.push(val);
-      input.value = '';
-      renderPool();
-    }
-  });
-  document.getElementById('new-code-input').addEventListener('keydown', (e)=>{
-    if(e.key === 'Enter') document.getElementById('add-code-btn').click();
-  });
-
-  document.getElementById('admin-save-btn').addEventListener('click', ()=>{
-    config.rotationDays = parseInt(document.getElementById('rotation-select').value,10);
-    config.description = document.getElementById('desc-input').value.trim() || DEFAULTS.description;
-    const newPass = document.getElementById('new-pass-input').value.trim();
-    if(newPass) config.adminPass = newPass;
-
-    // No backend — changes apply to THIS session's preview only.
-    // Generate the snippet to paste into the file and re-upload.
-    const snippet = 'const DEFAULTS = ' + JSON.stringify(config, null, 4) + ';';
-    const box = document.getElementById('export-box');
-    box.value = snippet;
-    box.style.display = 'block';
-    document.getElementById('copy-export-btn').style.display = 'inline-block';
-    document.getElementById('admin-msg').innerHTML =
-      'Copy the block below into the DEFAULTS constant near the top of the file\'s &lt;script&gt;, then re-upload it to your host.';
-
-    const { code, nextRotation } = currentWindow();
-    document.getElementById('admin-stat-active').textContent = code;
-    document.getElementById('admin-stat-next').textContent = nextRotation.toDateString();
-  });
-
-  document.getElementById('copy-export-btn')?.addEventListener('click', ()=>{
-    const box = document.getElementById('export-box');
-    box.select();
-    navigator.clipboard && navigator.clipboard.writeText(box.value).catch(()=>{});
-  });
-
   // ---- init ----
   (function init(){
     loadConfig();
     runBoot();
-    checkAdminAccess();
   })();
 })();
 </script>
