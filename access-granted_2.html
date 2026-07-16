@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ACCESS GRANTED // Trust No Input</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#060907;
+    --bg-panel:#0b120e;
+    --green:#39ff88;
+    --green-glow:rgba(57,255,136,.35);
+    --green-dim:#1d6b45;
+    --amber:#ffb020;
+    --red:#ff4d4d;
+    --text:#d7ffe8;
+    --text-dim:#5f8a72;
+    --border:#173021;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'JetBrains Mono', monospace;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    position:relative;
+    overflow-x:hidden;
+  }
+
+  /* scanline / crt atmosphere */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background:repeating-linear-gradient(
+      to bottom,
+      rgba(57,255,136,0.035) 0px,
+      rgba(57,255,136,0.035) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    pointer-events:none;
+    z-index:5;
+  }
+  body::after{
+    content:"";
+    position:fixed; inset:0;
+    background:radial-gradient(ellipse at 50% 20%, rgba(57,255,136,0.06), transparent 60%);
+    pointer-events:none;
+    z-index:1;
+  }
+
+  .frame{
+    width:100%;
+    max-width:520px;
+    position:relative;
+    z-index:2;
+  }
+
+  .titlebar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 14px;
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    border-bottom:none;
+    border-radius:6px 6px 0 0;
+  }
+  .dot{width:9px; height:9px; border-radius:50%; background:var(--green-dim);}
+  .titlebar span.label{
+    margin-left:8px;
+    font-size:11px;
+    letter-spacing:.12em;
+    color:var(--text-dim);
+    text-transform:uppercase;
+  }
+
+  .terminal{
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    border-radius:0 0 6px 6px;
+    padding:28px 24px 24px;
+    min-height:380px;
+    box-shadow:0 0 40px rgba(57,255,136,0.04), inset 0 0 60px rgba(0,0,0,0.4);
+  }
+
+  .boot-line{
+    font-size:13px;
+    line-height:1.9;
+    color:var(--text-dim);
+    opacity:0;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .boot-line.show{ opacity:1; }
+  .boot-line .icon{
+    width:16px; height:16px;
+    flex:none;
+    stroke:var(--green-dim);
+  }
+  .boot-line.verified .icon{ stroke:var(--green); }
+  .boot-line .status{
+    margin-left:auto;
+    font-weight:700;
+    letter-spacing:.05em;
+  }
+  .boot-line.verified .status{ color:var(--green); }
+  .boot-line.pending .status{ color:var(--text-dim); }
+
+  .cursor{
+    display:inline-block;
+    width:8px; height:14px;
+    background:var(--green);
+    animation:blink 1s steps(1) infinite;
+    vertical-align:middle;
+  }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  #boot-screen{ display:flex; flex-direction:column; gap:2px; justify-content:center; min-height:330px; }
+
+  /* ACCESS GRANTED glitch reveal */
+  #granted-screen{ display:none; text-align:center; }
+  .granted-title{
+    font-size:28px;
+    font-weight:800;
+    letter-spacing:.06em;
+    color:var(--green);
+    text-shadow:0 0 12px var(--green-glow), 0 0 2px var(--green-glow);
+    animation: glitch 700ms steps(2) 1;
+    margin-bottom:6px;
+  }
+  @keyframes glitch{
+    0%{ transform:translate(0,0); opacity:0; }
+    20%{ transform:translate(-2px,1px); opacity:1; }
+    40%{ transform:translate(2px,-1px); }
+    60%{ transform:translate(-1px,0); }
+    100%{ transform:translate(0,0); }
+  }
+  .sub{
+    font-size:12px;
+    color:var(--text-dim);
+    letter-spacing:.08em;
+    margin-bottom:26px;
+  }
+
+  .code-card{
+    border:1px dashed var(--green-dim);
+    border-radius:8px;
+    padding:20px;
+    background:rgba(57,255,136,0.03);
+    margin-bottom:20px;
+  }
+  .code-label{
+    font-size:10px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    margin-bottom:10px;
+  }
+  .code-value{
+    font-size:30px;
+    font-weight:800;
+    letter-spacing:.08em;
+    color:var(--green);
+    margin-bottom:14px;
+    word-break:break-all;
+  }
+  .code-desc{
+    font-size:12px;
+    color:var(--text-dim);
+    margin-bottom:18px;
+    line-height:1.6;
+  }
+  button.copy-btn{
+    font-family:'JetBrains Mono', monospace;
+    background:transparent;
+    color:var(--green);
+    border:1px solid var(--green-dim);
+    padding:10px 18px;
+    border-radius:5px;
+    font-size:12px;
+    letter-spacing:.08em;
+    cursor:pointer;
+    transition:.15s;
+    width:100%;
+  }
+  button.copy-btn:hover{ background:var(--green); color:#04150a; }
+  button.copy-btn:active{ transform:scale(.98); }
+
+  .meta-row{
+    display:flex;
+    justify-content:space-between;
+    font-size:11px;
+    color:var(--text-dim);
+    margin-top:18px;
+    letter-spacing:.03em;
+  }
+  .meta-row b{ color:var(--text); font-weight:500; }
+
+  .footer{
+    text-align:center;
+    font-size:10px;
+    color:var(--text-dim);
+    letter-spacing:.1em;
+    margin-top:18px;
+    text-transform:uppercase;
+    cursor:default;
+    user-select:none;
+  }
+
+  /* admin overlay */
+  #admin-overlay{
+    display:none;
+    position:fixed; inset:0;
+    background:rgba(2,6,3,0.92);
+    z-index:20;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  }
+  .admin-panel{
+    background:var(--bg-panel);
+    border:1px solid var(--green-dim);
+    border-radius:8px;
+    padding:22px;
+    width:100%;
+    max-width:440px;
+    max-height:86vh;
+    overflow-y:auto;
+  }
+  .admin-panel h3{
+    font-size:13px;
+    letter-spacing:.1em;
+    color:var(--green);
+    margin-bottom:14px;
+    text-transform:uppercase;
+  }
+  .admin-panel label{
+    display:block;
+    font-size:10px;
+    color:var(--text-dim);
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    margin:14px 0 6px;
+  }
+  .admin-panel input, .admin-panel select{
+    width:100%;
+    background:#04100a;
+    border:1px solid var(--border);
+    color:var(--text);
+    font-family:'JetBrains Mono', monospace;
+    padding:9px 10px;
+    border-radius:4px;
+    font-size:13px;
+  }
+  .admin-panel input:focus, .admin-panel select:focus{ outline:1px solid var(--green); }
+  .admin-row{ display:flex; gap:8px; }
+  .admin-row input{ flex:1; }
+  .admin-btn{
+    font-family:'JetBrains Mono', monospace;
+    background:var(--green);
+    color:#04150a;
+    border:none;
+    padding:9px 14px;
+    border-radius:4px;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.06em;
+    cursor:pointer;
+  }
+  .admin-btn.secondary{
+    background:transparent;
+    color:var(--text-dim);
+    border:1px solid var(--border);
+    font-weight:500;
+  }
+  .pool-list{ margin-top:8px; }
+  .pool-item{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 10px;
+    background:#04100a;
+    border:1px solid var(--border);
+    border-radius:4px;
+    margin-bottom:6px;
+    font-size:12px;
+  }
+  .pool-item .del{
+    color:var(--red); cursor:pointer; font-size:11px; letter-spacing:.05em;
+  }
+  .admin-msg{
+    font-size:11px; color:var(--amber); margin-top:10px; min-height:14px;
+  }
+  .admin-close{
+    display:flex; justify-content:flex-end; margin-top:18px; gap:8px;
+  }
+  .stat-line{ font-size:12px; color:var(--text-dim); margin-bottom:4px; }
+  .stat-line b{ color:var(--text); }
+</style>
+</head>
+<body>
+
+<div class="frame">
+  <div class="titlebar">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    <span class="label">grey-hat-culture // trust-no-input</span>
+  </div>
+  <div class="terminal">
+
+    <div id="boot-screen">
+      <div class="boot-line" data-verified="false">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span>retina scan ..........</span>
+        <span class="status">running</span>
+      </div>
+      <div class="boot-line" data-verified="false">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M12 2a5 5 0 0 0-5 5v1M12 2a5 5 0 0 1 5 5v1M7 8v3a5 5 0 0 0 10 0V8M12 12v7M9 12v6M15 12v6M6 11v3a6 6 0 0 0 12 0v-3"/></svg>
+        <span>biometric check ......</span>
+        <span class="status">queued</span>
+      </div>
+      <div class="boot-line" data-verified="false">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.6"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M7 11V8a5 5 0 0 1 9.5-2.2"/></svg>
+        <span>decrypting token .....</span>
+        <span class="status">queued</span>
+      </div>
+      <div class="boot-line" style="margin-top:14px;">
+        <span style="color:var(--text-dim)">&gt; </span><span class="cursor"></span>
+      </div>
+    </div>
+
+    <div id="granted-screen">
+      <div class="granted-title">ACCESS GRANTED</div>
+      <div class="sub">identity confirmed // clearance issued</div>
+
+      <div class="code-card">
+        <div class="code-label">your clearance code</div>
+        <div class="code-value" id="code-value">——</div>
+        <div class="code-desc" id="code-desc">Loading briefing...</div>
+        <button class="copy-btn" id="copy-btn">COPY CODE</button>
+      </div>
+
+      <div class="meta-row">
+        <span>rotates in <b id="rotation-timer">—</b></span>
+        <span><b id="scan-count">—</b> cleared</span>
+      </div>
+
+      <div class="footer" id="footer-mark">grey hat culture &middot; trust no input &middot; one code per operative</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- admin overlay -->
+<div id="admin-overlay">
+  <div class="admin-panel">
+    <div id="admin-login">
+      <h3>root access</h3>
+      <label>passphrase</label>
+      <input type="password" id="admin-pass-input" autocomplete="off" spellcheck="false">
+      <div class="admin-msg" id="login-msg"></div>
+      <div class="admin-close">
+        <button class="admin-btn secondary" id="admin-cancel-1">cancel</button>
+        <button class="admin-btn" id="admin-login-btn">unlock</button>
+      </div>
+    </div>
+
+    <div id="admin-dashboard" style="display:none;">
+      <h3>console</h3>
+      <div class="stat-line">total operatives cleared: <b id="admin-stat-scans">0</b></div>
+      <div class="stat-line">active code: <b id="admin-stat-active">—</b></div>
+      <div class="stat-line">rotates: <b id="admin-stat-next">—</b></div>
+
+      <label>rotation length (days)</label>
+      <select id="rotation-select">
+        <option value="1">1 day</option>
+        <option value="3">3 days</option>
+        <option value="7">7 days</option>
+        <option value="14">14 days</option>
+        <option value="30">30 days</option>
+      </select>
+
+      <label>code pool (rotates in order added)</label>
+      <div class="pool-list" id="pool-list"></div>
+      <div class="admin-row" style="margin-top:8px;">
+        <input type="text" id="new-code-input" placeholder="e.g. ROOTACCESS15" style="text-transform:uppercase;">
+        <button class="admin-btn" id="add-code-btn">add</button>
+      </div>
+
+      <label>discount description (shown to customer)</label>
+      <input type="text" id="desc-input" placeholder="e.g. 15% off — Trust No Input drop">
+
+      <label>change passphrase</label>
+      <input type="text" id="new-pass-input" placeholder="leave blank to keep current">
+
+      <div class="admin-msg" id="admin-msg"></div>
+      <textarea id="export-box" readonly style="display:none; width:100%; height:120px; margin-top:8px; background:#04100a; border:1px solid var(--border); color:var(--green); font-family:'JetBrains Mono',monospace; font-size:11px; padding:8px; border-radius:4px;"></textarea>
+      <div class="admin-close">
+        <button class="admin-btn secondary" id="copy-export-btn" style="display:none;">copy snippet</button>
+        <button class="admin-btn secondary" id="admin-close-btn">close</button>
+        <button class="admin-btn" id="admin-save-btn">generate snippet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ============================================================
+  // EDIT THIS BLOCK to update codes, rotation, or description.
+  // This is the single source of truth — no backend, no database.
+  // After editing, just re-upload this file to your host.
+  // ============================================================
+  const DEFAULTS = {
+    pool: ["ROOTACCESS10","BLUETEAM10","PATCHTUES10"],
+    rotationDays: 7,
+    startDate: "2026-07-13", // anchor date the rotation counts from
+    description: "10% off your next Trust No Input order",
+    adminPass: "trustnoinput",
+    // Secret URL key — change this to your own value.
+    // Admin access only opens if the page URL includes ?ops=<this value>
+    // e.g. https://yoursite/?ops=gh-ops-7734
+    // Nothing on the page hints this exists; no visible tap/click trigger.
+    consoleToken: "gh-ops-7734"
+  };
+  // ============================================================
+
+  // Scan counter: uses countapi.xyz, a free no-signup counter API.
+  // Swap COUNTER_NAMESPACE for something unique to you.
+  const COUNTER_NAMESPACE = "grey-hat-culture-tni";
+  const COUNTER_KEY = "access-granted-scans";
+
+  let config = {...DEFAULTS};
+
+  function loadConfig(){
+    // Pure in-memory. Real edits happen by changing DEFAULTS above
+    // and re-uploading — see the admin panel's "export" step.
+    config = {...DEFAULTS};
+  }
+
+  async function bumpScanCount(){
+    try{
+      const res = await fetch(`https://api.countapi.xyz/hit/${COUNTER_NAMESPACE}/${COUNTER_KEY}`);
+      const data = await res.json();
+      return data.value;
+    }catch(e){ return null; }
+  }
+
+  async function getScanCount(){
+    try{
+      const res = await fetch(`https://api.countapi.xyz/get/${COUNTER_NAMESPACE}/${COUNTER_KEY}`);
+      const data = await res.json();
+      return data.value || 0;
+    }catch(e){ return 0; }
+  }
+
+  function currentWindow(){
+    const start = new Date(config.startDate + "T00:00:00Z").getTime();
+    const now = Date.now();
+    const daysSince = Math.max(0, Math.floor((now - start) / 86400000));
+    const rd = Math.max(1, parseInt(config.rotationDays,10) || 7);
+    const windowIndex = Math.floor(daysSince / rd);
+    const poolLen = config.pool.length || 1;
+    const codeIndex = ((windowIndex % poolLen) + poolLen) % poolLen;
+    const nextRotation = new Date(start + (windowIndex+1) * rd * 86400000);
+    return { code: config.pool[codeIndex] || "COMEBACKSOON", nextRotation };
+  }
+
+  function formatCountdown(target){
+    const diff = target.getTime() - Date.now();
+    if(diff <= 0) return "soon";
+    const h = Math.floor(diff / 3600000);
+    const d = Math.floor(h/24);
+    const hh = h % 24;
+    const m = Math.floor((diff % 3600000)/60000);
+    if(d > 0) return d + "d " + hh + "h";
+    if(hh > 0) return hh + "h " + m + "m";
+    return m + "m";
+  }
+
+  // ---- boot sequence ----
+  const lines = Array.from(document.querySelectorAll('.boot-line[data-verified]'));
+  function runBoot(){
+    let i = 0;
+    function step(){
+      if(i >= lines.length){
+        setTimeout(reveal, 500);
+        return;
+      }
+      const line = lines[i];
+      line.classList.add('show');
+      const statusEl = line.querySelector('.status');
+      setTimeout(()=>{
+        line.classList.add('verified');
+        statusEl.textContent = 'verified';
+      }, 550);
+      i++;
+      setTimeout(step, 750);
+    }
+    step();
+  }
+
+  let revealed = false;
+  async function reveal(){
+    if(revealed) return;
+    revealed = true;
+    document.getElementById('boot-screen').style.display = 'none';
+    document.getElementById('granted-screen').style.display = 'block';
+
+    const { code, nextRotation } = currentWindow();
+    document.getElementById('code-value').textContent = code;
+    document.getElementById('code-desc').textContent = config.description || DEFAULTS.description;
+
+    const count = await bumpScanCount();
+    const countEl = document.getElementById('scan-count');
+    const metaRow = countEl.closest('.meta-row');
+    if(count === null){
+      // counter unreachable — hide that stat rather than show a broken 0
+      if(metaRow) metaRow.querySelector('span:last-child').style.display = 'none';
+    }else{
+      countEl.textContent = count.toLocaleString();
+    }
+
+    function tick(){
+      document.getElementById('rotation-timer').textContent = formatCountdown(nextRotation);
+    }
+    tick();
+    setInterval(tick, 30000);
+  }
+
+  document.addEventListener('keydown', ()=>{ if(!revealed) reveal(); });
+  document.addEventListener('click', ()=>{ if(!revealed) reveal(); }, {once:true});
+
+  document.getElementById('copy-btn').addEventListener('click', function(){
+    const code = document.getElementById('code-value').textContent;
+    navigator.clipboard && navigator.clipboard.writeText(code).catch(()=>{});
+    this.textContent = 'COPIED';
+    setTimeout(()=>{ this.textContent = 'COPY CODE'; }, 1400);
+  });
+
+  // ---- admin access: silent URL-param gate, no visible trigger on the page ----
+  function checkAdminAccess(){
+    const params = new URLSearchParams(window.location.search);
+    const ops = params.get('ops');
+    if(ops && ops === (config.consoleToken || DEFAULTS.consoleToken)){
+      openAdminLogin();
+    }
+  }
+
+  function openAdminLogin(){
+    document.getElementById('admin-overlay').style.display = 'flex';
+    document.getElementById('admin-login').style.display = 'block';
+    document.getElementById('admin-dashboard').style.display = 'none';
+    document.getElementById('login-msg').textContent = '';
+    document.getElementById('admin-pass-input').value = '';
+    document.getElementById('admin-pass-input').focus();
+  }
+  function closeAdmin(){
+    document.getElementById('admin-overlay').style.display = 'none';
+  }
+  document.getElementById('admin-cancel-1').addEventListener('click', closeAdmin);
+  document.getElementById('admin-close-btn').addEventListener('click', closeAdmin);
+
+  document.getElementById('admin-login-btn').addEventListener('click', async ()=>{
+    const val = document.getElementById('admin-pass-input').value;
+    if(val === (config.adminPass || DEFAULTS.adminPass)){
+      await openDashboard();
+    }else{
+      document.getElementById('login-msg').textContent = 'incorrect passphrase';
+    }
+  });
+  document.getElementById('admin-pass-input').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') document.getElementById('admin-login-btn').click();
+  });
+
+  function renderPool(){
+    const list = document.getElementById('pool-list');
+    list.innerHTML = '';
+    config.pool.forEach((code, idx)=>{
+      const row = document.createElement('div');
+      row.className = 'pool-item';
+      row.innerHTML = '<span>' + (idx+1) + '. ' + code + '</span><span class="del" data-idx="'+idx+'">remove</span>';
+      list.appendChild(row);
+    });
+    list.querySelectorAll('.del').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const idx = parseInt(el.getAttribute('data-idx'),10);
+        if(config.pool.length > 1){
+          config.pool.splice(idx,1);
+          renderPool();
+        }else{
+          document.getElementById('admin-msg').textContent = 'pool needs at least one code';
+        }
+      });
+    });
+  }
+
+  async function openDashboard(){
+    document.getElementById('admin-login').style.display = 'none';
+    document.getElementById('admin-dashboard').style.display = 'block';
+    const scans = await getScanCount();
+    document.getElementById('admin-stat-scans').textContent = scans.toLocaleString();
+    const { code, nextRotation } = currentWindow();
+    document.getElementById('admin-stat-active').textContent = code;
+    document.getElementById('admin-stat-next').textContent = nextRotation.toDateString();
+    document.getElementById('rotation-select').value = String(config.rotationDays);
+    document.getElementById('desc-input').value = config.description || '';
+    renderPool();
+  }
+
+  document.getElementById('add-code-btn').addEventListener('click', ()=>{
+    const input = document.getElementById('new-code-input');
+    const val = input.value.trim().toUpperCase();
+    if(val){
+      config.pool.push(val);
+      input.value = '';
+      renderPool();
+    }
+  });
+  document.getElementById('new-code-input').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') document.getElementById('add-code-btn').click();
+  });
+
+  document.getElementById('admin-save-btn').addEventListener('click', ()=>{
+    config.rotationDays = parseInt(document.getElementById('rotation-select').value,10);
+    config.description = document.getElementById('desc-input').value.trim() || DEFAULTS.description;
+    const newPass = document.getElementById('new-pass-input').value.trim();
+    if(newPass) config.adminPass = newPass;
+
+    // No backend — changes apply to THIS session's preview only.
+    // Generate the snippet to paste into the file and re-upload.
+    const snippet = 'const DEFAULTS = ' + JSON.stringify(config, null, 4) + ';';
+    const box = document.getElementById('export-box');
+    box.value = snippet;
+    box.style.display = 'block';
+    document.getElementById('copy-export-btn').style.display = 'inline-block';
+    document.getElementById('admin-msg').innerHTML =
+      'Copy the block below into the DEFAULTS constant near the top of the file\'s &lt;script&gt;, then re-upload it to your host.';
+
+    const { code, nextRotation } = currentWindow();
+    document.getElementById('admin-stat-active').textContent = code;
+    document.getElementById('admin-stat-next').textContent = nextRotation.toDateString();
+  });
+
+  document.getElementById('copy-export-btn')?.addEventListener('click', ()=>{
+    const box = document.getElementById('export-box');
+    box.select();
+    navigator.clipboard && navigator.clipboard.writeText(box.value).catch(()=>{});
+  });
+
+  // ---- init ----
+  (function init(){
+    loadConfig();
+    runBoot();
+    checkAdminAccess();
+  })();
+})();
+</script>
+</body>
+</html>
