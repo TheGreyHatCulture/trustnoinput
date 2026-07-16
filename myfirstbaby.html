@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#060907;
+    --bg-panel:#0b120e;
+    --green:#39ff88;
+    --green-dim:#1d6b45;
+    --amber:#ffb020;
+    --red:#ff4d4d;
+    --text:#d7ffe8;
+    --text-dim:#5f8a72;
+    --border:#173021;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'JetBrains Mono', monospace;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .panel{
+    background:var(--bg-panel);
+    border:1px solid var(--green-dim);
+    border-radius:8px;
+    padding:24px;
+    width:100%;
+    max-width:460px;
+    max-height:90vh;
+    overflow-y:auto;
+  }
+  h3{
+    font-size:13px;
+    letter-spacing:.1em;
+    color:var(--green);
+    margin-bottom:14px;
+    text-transform:uppercase;
+  }
+  label{
+    display:block;
+    font-size:10px;
+    color:var(--text-dim);
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    margin:14px 0 6px;
+  }
+  input, select, textarea{
+    width:100%;
+    background:#04100a;
+    border:1px solid var(--border);
+    color:var(--text);
+    font-family:'JetBrains Mono', monospace;
+    padding:9px 10px;
+    border-radius:4px;
+    font-size:13px;
+  }
+  input:focus, select:focus, textarea:focus{ outline:1px solid var(--green); }
+  .row{ display:flex; gap:8px; }
+  .row input{ flex:1; }
+  .btn{
+    font-family:'JetBrains Mono', monospace;
+    background:var(--green);
+    color:#04150a;
+    border:none;
+    padding:9px 14px;
+    border-radius:4px;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.06em;
+    cursor:pointer;
+  }
+  .btn.secondary{
+    background:transparent;
+    color:var(--text-dim);
+    border:1px solid var(--border);
+    font-weight:500;
+  }
+  .pool-list{ margin-top:8px; }
+  .pool-item{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 10px;
+    background:#04100a;
+    border:1px solid var(--border);
+    border-radius:4px;
+    margin-bottom:6px;
+    font-size:12px;
+  }
+  .pool-item .del{ color:var(--red); cursor:pointer; font-size:11px; letter-spacing:.05em; }
+  .msg{ font-size:11px; color:var(--amber); margin-top:10px; min-height:14px; }
+  .close-row{ display:flex; justify-content:flex-end; margin-top:18px; gap:8px; }
+  .stat-line{ font-size:12px; color:var(--text-dim); margin-bottom:4px; }
+  .stat-line b{ color:var(--text); }
+  #export-box{ display:none; height:130px; margin-top:8px; color:var(--green); font-size:11px; }
+  .source-path{ font-size:10px; color:var(--text-dim); margin-top:16px; word-break:break-all; }
+</style>
+</head>
+<body>
+
+<div class="panel">
+  <div id="login-view">
+    <h3>root access</h3>
+    <label>source page URL</label>
+    <input type="text" id="source-url-input" placeholder="e.g. ./index.html">
+    <label>passphrase</label>
+    <input type="password" id="pass-input" autocomplete="off" spellcheck="false">
+    <div class="msg" id="login-msg"></div>
+    <div class="close-row">
+      <button class="btn" id="login-btn">unlock</button>
+    </div>
+  </div>
+
+  <div id="dashboard-view" style="display:none;">
+    <h3>console</h3>
+    <div class="stat-line">total operatives cleared: <b id="stat-scans">0</b></div>
+    <div class="stat-line">active code: <b id="stat-active">—</b></div>
+    <div class="stat-line">rotates: <b id="stat-next">—</b></div>
+
+    <label>rotation length (days)</label>
+    <select id="rotation-select">
+      <option value="1">1 day</option>
+      <option value="3">3 days</option>
+      <option value="7">7 days</option>
+      <option value="14">14 days</option>
+      <option value="30">30 days</option>
+    </select>
+
+    <label>code pool (rotates in order added)</label>
+    <div class="pool-list" id="pool-list"></div>
+    <div class="row" style="margin-top:8px;">
+      <input type="text" id="new-code-input" placeholder="e.g. ROOTACCESS15" style="text-transform:uppercase;">
+      <button class="btn" id="add-code-btn">add</button>
+    </div>
+
+    <label>discount description (shown to customer)</label>
+    <input type="text" id="desc-input" placeholder="e.g. 15% off — Trust No Input drop">
+
+    <label>change passphrase</label>
+    <input type="text" id="new-pass-input" placeholder="leave blank to keep current">
+
+    <div class="msg" id="dash-msg"></div>
+    <textarea id="export-box" readonly></textarea>
+    <div class="close-row">
+      <button class="btn secondary" id="copy-btn" style="display:none;">copy snippet</button>
+      <button class="btn" id="save-btn">generate snippet</button>
+    </div>
+    <div class="source-path" id="source-path-display"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const COUNTER_NAMESPACE = "grey-hat-culture-tni";
+  const COUNTER_KEY = "access-granted-scans";
+
+  let liveConfig = null;
+  let sourceUrl = "./index.html";
+  document.getElementById('source-url-input').value = sourceUrl;
+
+  function extractDefaults(text){
+    const marker = "const DEFAULTS = ";
+    const start = text.indexOf(marker);
+    if(start === -1) throw new Error("DEFAULTS block not found in source page");
+    const braceStart = text.indexOf("{", start);
+    let depth = 0, i = braceStart;
+    for(; i < text.length; i++){
+      if(text[i] === "{") depth++;
+      if(text[i] === "}") depth--;
+      if(depth === 0){ i++; break; }
+    }
+    const literal = text.slice(braceStart, i);
+    return (new Function("return " + literal))();
+  }
+
+  async function getScanCount(){
+    try{
+      const res = await fetch(`https://api.countapi.xyz/get/${COUNTER_NAMESPACE}/${COUNTER_KEY}`);
+      const data = await res.json();
+      return data.value || 0;
+    }catch(e){ return 0; }
+  }
+
+  function currentWindow(cfg){
+    const start = new Date(cfg.startDate + "T00:00:00Z").getTime();
+    const now = Date.now();
+    const daysSince = Math.max(0, Math.floor((now - start) / 86400000));
+    const rd = Math.max(1, parseInt(cfg.rotationDays,10) || 7);
+    const windowIndex = Math.floor(daysSince / rd);
+    const poolLen = cfg.pool.length || 1;
+    const codeIndex = ((windowIndex % poolLen) + poolLen) % poolLen;
+    const nextRotation = new Date(start + (windowIndex+1) * rd * 86400000);
+    return { code: cfg.pool[codeIndex] || "—", nextRotation };
+  }
+
+  document.getElementById('login-btn').addEventListener('click', async ()=>{
+    const msg = document.getElementById('login-msg');
+    sourceUrl = document.getElementById('source-url-input').value.trim() || "./index.html";
+    msg.textContent = "reading source page...";
+    try{
+      const res = await fetch(sourceUrl, {cache:"no-store"});
+      if(!res.ok) throw new Error("could not fetch source page (" + res.status + ")");
+      const text = await res.text();
+      liveConfig = extractDefaults(text);
+    }catch(e){
+      msg.textContent = "error: " + e.message;
+      return;
+    }
+    const val = document.getElementById('pass-input').value;
+    if(val !== (liveConfig.adminPass || "")){
+      msg.textContent = "incorrect passphrase";
+      return;
+    }
+    msg.textContent = "";
+    await openDashboard();
+  });
+  document.getElementById('pass-input').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') document.getElementById('login-btn').click();
+  });
+
+  function renderPool(){
+    const list = document.getElementById('pool-list');
+    list.innerHTML = '';
+    liveConfig.pool.forEach((code, idx)=>{
+      const row = document.createElement('div');
+      row.className = 'pool-item';
+      row.innerHTML = '<span>' + (idx+1) + '. ' + code + '</span><span class="del" data-idx="'+idx+'">remove</span>';
+      list.appendChild(row);
+    });
+    list.querySelectorAll('.del').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const idx = parseInt(el.getAttribute('data-idx'),10);
+        if(liveConfig.pool.length > 1){
+          liveConfig.pool.splice(idx,1);
+          renderPool();
+        }else{
+          document.getElementById('dash-msg').textContent = 'pool needs at least one code';
+        }
+      });
+    });
+  }
+
+  async function openDashboard(){
+    document.getElementById('login-view').style.display = 'none';
+    document.getElementById('dashboard-view').style.display = 'block';
+    document.getElementById('source-path-display').textContent = 'source: ' + sourceUrl;
+
+    const scans = await getScanCount();
+    document.getElementById('stat-scans').textContent = scans.toLocaleString();
+    const { code, nextRotation } = currentWindow(liveConfig);
+    document.getElementById('stat-active').textContent = code;
+    document.getElementById('stat-next').textContent = nextRotation.toDateString();
+    document.getElementById('rotation-select').value = String(liveConfig.rotationDays);
+    document.getElementById('desc-input').value = liveConfig.description || '';
+    renderPool();
+  }
+
+  document.getElementById('add-code-btn').addEventListener('click', ()=>{
+    const input = document.getElementById('new-code-input');
+    const val = input.value.trim().toUpperCase();
+    if(val){
+      liveConfig.pool.push(val);
+      input.value = '';
+      renderPool();
+    }
+  });
+  document.getElementById('new-code-input').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') document.getElementById('add-code-btn').click();
+  });
+
+  document.getElementById('save-btn').addEventListener('click', ()=>{
+    liveConfig.rotationDays = parseInt(document.getElementById('rotation-select').value,10);
+    liveConfig.description = document.getElementById('desc-input').value.trim() || liveConfig.description;
+    const newPass = document.getElementById('new-pass-input').value.trim();
+    if(newPass) liveConfig.adminPass = newPass;
+
+    const snippet = 'const DEFAULTS = ' + JSON.stringify(liveConfig, null, 4) + ';';
+    const box = document.getElementById('export-box');
+    box.value = snippet;
+    box.style.display = 'block';
+    document.getElementById('copy-btn').style.display = 'inline-block';
+    document.getElementById('dash-msg').innerHTML =
+      'Copy this into the DEFAULTS constant in ' + sourceUrl + ', then re-upload it.';
+
+    const { code, nextRotation } = currentWindow(liveConfig);
+    document.getElementById('stat-active').textContent = code;
+    document.getElementById('stat-next').textContent = nextRotation.toDateString();
+  });
+
+  document.getElementById('copy-btn').addEventListener('click', ()=>{
+    const box = document.getElementById('export-box');
+    box.select();
+    navigator.clipboard && navigator.clipboard.writeText(box.value).catch(()=>{});
+  });
+})();
+</script>
+</body>
+</html>
